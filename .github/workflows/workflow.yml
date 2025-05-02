@@ -1,0 +1,36 @@
+name: cmake-configure-build-test
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: true
+      use-emscripten:
+        type: boolean
+        default: false
+      test:
+        type: boolean
+        default: true
+
+jobs:
+  configure-build-test:
+    name: Configure${{ inputs.test && ', Build and Test' || ' and Build (Testing is disabled)' }}
+    runs-on: ${{ inputs.platform }}
+    steps:
+      - if: inputs['use-emscripten']
+        name: Setup Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Configure ${{ inputs['use-emscripten'] && 'using emcmake' || '' }}
+        run: ${{ inputs['use-emscripten'] && 'emcmake' || '' }} cmake -B build
+
+      - name: Build
+        run: cmake --build build
+
+      - if: inputs.test
+        name: Test
+        run: ctest --test-dir build --verbose --output-on-failure --no-tests=error
